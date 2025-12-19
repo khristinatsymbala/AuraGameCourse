@@ -4,6 +4,7 @@
 #include "Player/AuraPlayerController.h"
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedInputComponent.h"
+#include "Interaction/EnemyInterface.h"
 
 AAuraPlayerController::AAuraPlayerController()
 {
@@ -15,6 +16,68 @@ AAuraPlayerController::AAuraPlayerController()
 	 */
 	bReplicates = true;
 }
+
+//Highlight enemy
+void AAuraPlayerController::PlayerTick(float DeltaTime)
+{
+	Super::PlayerTick(DeltaTime);
+	
+	
+}
+void AAuraPlayerController::CursorTrace()
+{
+	FHitResult CursorHit;
+	GetHitResultUnderCursor(ECC_Visibility,false,CursorHit);
+	if (!CursorHit.bBlockingHit) return;
+	
+	LastActor = ThisActor;
+	ThisActor = CursorHit.GetActor();
+	
+	/*
+	 *Line trace from cursor. There are several scenarios.
+	 * A. LastActor is null && ThisActor is null
+	 * B. LastActor is null && ThisActor valid - star highlight
+	 *   - Highlight ThisActor
+	 * C. LastActor is valid && ThisActor is null - stop highlight 
+	 *   - UnHighlight LastActor
+	 * D. Both actors are valid, but LastActor != ThisActor - when we`re switching from one enemy to another
+	 *	 - UnHighlight LastActor and Highlight ThisActor
+	 * E. Both actors are valid, and are the same actor
+	 *  - Do nothing
+	 */
+	
+	if (LastActor == nullptr)
+	{
+		if (ThisActor != nullptr)
+		{
+			//Case B
+			ThisActor->HighlightActor();
+		}else
+		{
+			//Case A - Both are null,do nothing
+		}
+	}else //Last actor is valid
+	{
+		//Case C
+		if (ThisActor == nullptr)
+		{
+			LastActor->UnHighlightActor();
+		}else
+		{
+			//borh are valid
+			if (LastActor != ThisActor)
+			{
+				//Case D
+				LastActor->UnHighlightActor();
+				ThisActor->HighlightActor();
+			}else
+			{
+				//Case E - do nothing
+			}
+		}
+	}
+}
+////////////////////////////////////////////////////////
 
 void AAuraPlayerController::BeginPlay()
 {
@@ -71,3 +134,5 @@ void AAuraPlayerController::Move(const FInputActionValue& InputActionValue)
 		ControlledPawn->AddMovementInput(RightDirection, InputAxisVector.X);
 	}
 }
+
+
